@@ -6,7 +6,10 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
+import com.google.gson.Gson
 import kotlinx.coroutines.*
+import retrofit2.*
+import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.system.measureTimeMillis
 import kotlin.time.measureTime
 
@@ -16,6 +19,7 @@ import kotlin.time.measureTime
 * */
 
 private val TAG = "MainAct"
+private val BASE_URL = "https://test.io"
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +89,54 @@ class MainActivity : AppCompatActivity() {
                     finish()
                 }
             }
+        }
+
+//        Now comes practice with retrofit
+        val api = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(MyApi::class.java)
+
+//        Getting list using old way
+//        Here enque func will start call in separate thread
+        api.getListOldWay().enqueue(object : Callback<List<Person>> {
+            override fun onResponse(call: Call<List<Person>>, response: Response<List<Person>>) {
+                if (response.isSuccessful) {
+//                    do this
+                    Log.d(TAG, "Success received in old way call")
+                }
+            }
+
+            override fun onFailure(call: Call<List<Person>>, t: Throwable) {
+                Log.d(TAG, "Error received in old way call")
+            }
+        })
+
+//        Now doing it in new coroutine way
+//        which is given by:
+        GlobalScope.launch(Dispatchers.IO) {
+            val response = api.getListCoroutineWay().await()
+            Log.d(TAG, response.toString())
+
+//            If we want this to be in response body format
+//            instead of await() just put awaitResponse()
+//            like given below
+
+            val responseBody = api.getListCoroutineWay().awaitResponse()
+            if (responseBody.isSuccessful) {
+
+            }
+
+//            There is better approach if we make our api interface func as suspend
+//            then we don't need to make it awaitResponse() just await and get response
+//            because that is a suspend func returning response
+
+            val advResponse = api.getListCoroutineUpdatedWay()
+            if (advResponse.isSuccessful) {
+                
+            }
+
         }
     }
 
